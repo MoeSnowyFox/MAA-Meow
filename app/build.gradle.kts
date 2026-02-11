@@ -75,9 +75,14 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            val keystorePath = localProperties.getProperty("KEYSTORE_PATH", "")
+            val keystorePath = System.getenv("KEYSTORE_PATH")
+                ?: localProperties.getProperty("KEYSTORE_PATH", "")
             if (keystorePath.isNotEmpty()) {
                 signingConfig = signingConfigs.getByName("release")
+                println("[Signing] Using release keystore: $keystorePath")
+            } else {
+                signingConfig = signingConfigs.getByName("debug")
+                println("[Signing] No release keystore configured, fallback to debug signing")
             }
         }
     }
