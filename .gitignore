@@ -8,7 +8,9 @@ build
 .cxx
 local.properties
 .idea
-.jks
+*.jks
 AGENTS.md
 # MaaResource
 /app/src/main/assets/MaaSync
+# MAA Core download cache
+.maa-cache/

@@ -53,12 +53,16 @@ android {
 
     signingConfigs {
         create("release") {
-            val keystorePath = localProperties.getProperty("KEYSTORE_PATH", "")
+            val keystorePath = System.getenv("KEYSTORE_PATH")
+                ?: localProperties.getProperty("KEYSTORE_PATH", "")
             if (keystorePath.isNotEmpty()) {
                 storeFile = file(keystorePath)
-                storePassword = localProperties.getProperty("KEYSTORE_PASSWORD", "")
-                keyAlias = localProperties.getProperty("KEY_ALIAS", "")
-                keyPassword = localProperties.getProperty("KEY_PASSWORD", "")
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                    ?: localProperties.getProperty("KEYSTORE_PASSWORD", "")
+                keyAlias = System.getenv("KEY_ALIAS")
+                    ?: localProperties.getProperty("KEY_ALIAS", "")
+                keyPassword = System.getenv("KEY_PASSWORD")
+                    ?: localProperties.getProperty("KEY_PASSWORD", "")
             }
         }
     }
@@ -77,6 +81,7 @@ android {
             }
         }
     }
+
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
