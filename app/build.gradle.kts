@@ -17,6 +17,20 @@ val localProperties = Properties().apply {
     }
 }
 
+val gitVersionCode: Int by lazy {
+    providers.exec {
+        commandLine("git", "rev-list", "--count", "HEAD")
+    }.standardOutput.asText.get().trim().toInt()
+}
+
+val gitVersionName: String by lazy {
+    val desc = providers.exec {
+        commandLine("git", "describe", "--tags", "--always", "--dirty")
+        isIgnoreExitValue = true
+    }.standardOutput.asText.get().trim()
+    desc.removePrefix("v").ifEmpty { "0.0.0-dev" }
+}
+
 android {
     namespace = "com.aliothmoon.maameow"
     compileSdk = 36
@@ -34,8 +48,9 @@ android {
         applicationId = "com.aliothmoon.maameow"
         minSdk = 28
         targetSdk = 36
-        versionCode = 5
-        versionName = "0.0.7-alpha"
+        versionCode = gitVersionCode
+        versionName = gitVersionName
+        println("Build version: versionCode=$versionCode, versionName=$versionName")
         ndkVersion = "29.0.13113456"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
