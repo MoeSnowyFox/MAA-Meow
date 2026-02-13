@@ -122,40 +122,37 @@ fun HomeView(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = "MAA",
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.headlineMedium
-                        )
-                    },
-                    actions = {
-                        IconButton(onClick = {
-                            navController.navigate(Routes.SETTINGS)
-                        }) {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = "设置"
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        Column(modifier = Modifier.fillMaxSize()) {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "MAA",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.headlineMedium
                     )
+                },
+                actions = {
+                    IconButton(onClick = {
+                        navController.navigate(Routes.SETTINGS)
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "设置"
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
-            }
-        ) { paddingValues ->
-
+            )
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(16.dp)
-                    .verticalScroll(rememberScrollState()),
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 16.dp, bottom = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -671,7 +668,13 @@ fun HomeView(
         }
 
         // Shizuku 未安装时弹出不可关闭的安装引导 Dialog
-        var isShizukuInstalled by remember { mutableStateOf(ShizukuInstallHelper.isShizukuInstalled(context)) }
+        var isShizukuInstalled by remember {
+            mutableStateOf(
+                ShizukuInstallHelper.isShizukuInstalled(
+                    context
+                )
+            )
+        }
         LifecycleResumeEffect(Unit) {
             isShizukuInstalled = ShizukuInstallHelper.isShizukuInstalled(context)
             onPauseOrDispose {}

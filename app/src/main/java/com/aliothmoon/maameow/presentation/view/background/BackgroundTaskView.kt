@@ -29,6 +29,7 @@ import com.aliothmoon.maameow.manager.PermissionManager
 import com.aliothmoon.maameow.presentation.components.PlaceholderContent
 import com.aliothmoon.maameow.presentation.components.ShizukuPermissionDialog
 import com.aliothmoon.maameow.presentation.state.BackgroundTaskState
+import com.aliothmoon.maameow.presentation.state.MonitorSurfaceSource
 import com.aliothmoon.maameow.presentation.view.panel.*
 import com.aliothmoon.maameow.presentation.viewmodel.BackgroundTaskViewModel
 import kotlinx.coroutines.launch
@@ -99,7 +100,8 @@ fun BackgroundTaskView(
                     if (granted) {
                         viewModel.onShizukuGranted()
                     } else {
-                        Toast.makeText(context, "Shizuku 权限未获取，请重试", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Shizuku 权限未获取，请重试", Toast.LENGTH_SHORT)
+                            .show()
                     }
                 }
             }
@@ -108,152 +110,157 @@ fun BackgroundTaskView(
 
     if (state.isFullscreenMonitor) {
         FullscreenPreviewDialog(
-            onSurfaceAvailable = { surface -> viewModel.onSurfaceChange(surface) },
-            onSurfaceDestroyed = { viewModel.onSurfaceChange(null) },
+            onSurfaceAvailable = { surface ->
+                viewModel.onSurfaceAvailable(MonitorSurfaceSource.FULLSCREEN, surface)
+            },
+            onSurfaceDestroyed = {
+                viewModel.onSurfaceDestroyed(MonitorSurfaceSource.FULLSCREEN)
+            },
             onDismiss = { viewModel.onToggleFullscreenMonitor() }
         )
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 8.dp, bottom = 16.dp)
-            ) {
-                if (!state.isFullscreenMonitor) {
-                    VirtualDisplayPreview(
-                        isRunning = state.isMonitorRunning,
-                        isLoading = state.isMonitorLoading,
-                        errorMessage = state.monitorErrorMessage,
-                        onSurfaceAvailable = { surface -> viewModel.onSurfaceChange(surface) },
-                        onSurfaceDestroyed = { viewModel.onSurfaceChange(null) },
-                        onRetry = viewModel::retryMonitorBinding,
-                        onClick = { viewModel.onToggleFullscreenMonitor() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(0.3f)
-                    )
-                } else {
-                    Spacer(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(0.3f)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                BackgroundPanelHeader(
-                    selectedTab = state.currentTab,
-                    onTabSelected = { tab ->
-                        viewModel.onTabChange(tab)
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                HorizontalPager(
-                    state = pagerState,
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
+                .padding(top = 8.dp, bottom = 16.dp)
+        ) {
+            if (!state.isFullscreenMonitor) {
+                VirtualDisplayPreview(
+                    isRunning = state.isMonitorRunning,
+                    isLoading = state.isMonitorLoading,
+                    errorMessage = state.monitorErrorMessage,
+                    onSurfaceAvailable = { surface ->
+                        viewModel.onSurfaceAvailable(MonitorSurfaceSource.EMBEDDED, surface)
+                    },
+                    onSurfaceDestroyed = {
+                        viewModel.onSurfaceDestroyed(MonitorSurfaceSource.EMBEDDED)
+                    },
+                    onRetry = viewModel::retryMonitorBinding,
+                    onClick = { viewModel.onToggleFullscreenMonitor() },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(0.6f),
-                    userScrollEnabled = true,
-                    beyondViewportPageCount = PanelTab.entries.size - 1
-                ) { page ->
-                    when (page) {
-                        0 -> {
-                            Row(modifier = Modifier.fillMaxSize()) {
-                                TaskListPanel(
-                                    tasks = tasks,
-                                    selectedTaskType = state.currentTaskType,
-                                    onTaskEnabledChange = { taskType, enabled ->
-                                        viewModel.onTaskEnableChange(taskType, enabled)
-                                    },
-                                    onTaskSelected = { taskType ->
-                                        viewModel.onSelectedTaskChange(taskType)
-                                    },
-                                    onTaskMove = { fromIndex, toIndex ->
-                                        viewModel.onTaskMove(fromIndex, toIndex)
-                                    },
-                                    modifier = Modifier
-                                        .weight(0.4f)
-                                        .fillMaxHeight()
-                                )
+                        .weight(0.3f)
+                )
+            } else {
+                Spacer(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(0.3f)
+                )
+            }
 
-                                Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-                                BackgroundConfigurationPanel(
-                                    state = state,
-                                    viewModel = viewModel,
-                                    modifier = Modifier
-                                        .weight(0.6f)
-                                        .fillMaxHeight()
-                                )
-                            }
-                        }
+            BackgroundPanelHeader(
+                selectedTab = state.currentTab,
+                onTabSelected = { tab ->
+                    viewModel.onTabChange(tab)
+                }
+            )
 
-                        1 -> {
-                            PlaceholderContent(
-                                title = "自动战斗",
-                                description = "功能开发中...",
-                                modifier = Modifier.fillMaxSize()
+            Spacer(modifier = Modifier.height(8.dp))
+
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(0.6f),
+                userScrollEnabled = true,
+                beyondViewportPageCount = PanelTab.entries.size - 1
+            ) { page ->
+                when (page) {
+                    0 -> {
+                        Row(modifier = Modifier.fillMaxSize()) {
+                            TaskListPanel(
+                                tasks = tasks,
+                                selectedTaskType = state.currentTaskType,
+                                onTaskEnabledChange = { taskType, enabled ->
+                                    viewModel.onTaskEnableChange(taskType, enabled)
+                                },
+                                onTaskSelected = { taskType ->
+                                    viewModel.onSelectedTaskChange(taskType)
+                                },
+                                onTaskMove = { fromIndex, toIndex ->
+                                    viewModel.onTaskMove(fromIndex, toIndex)
+                                },
+                                modifier = Modifier
+                                    .weight(0.4f)
+                                    .fillMaxHeight()
+                            )
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            BackgroundConfigurationPanel(
+                                state = state,
+                                viewModel = viewModel,
+                                modifier = Modifier
+                                    .weight(0.6f)
+                                    .fillMaxHeight()
                             )
                         }
+                    }
 
-                        2 -> {
-                            PlaceholderContent(
-                                title = "小工具",
-                                description = "功能开发中...",
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
+                    1 -> {
+                        PlaceholderContent(
+                            title = "自动战斗",
+                            description = "功能开发中...",
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
 
-                        3 -> {
-                            LogPanel(
-                                logs = logs,
-                                onClearLogs = viewModel::onClearLogs,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
+                    2 -> {
+                        PlaceholderContent(
+                            title = "小工具",
+                            description = "功能开发中...",
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+
+                    3 -> {
+                        LogPanel(
+                            logs = logs,
+                            onClearLogs = viewModel::onClearLogs,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Button(
+                    onClick = { viewModel.onStartTasks() },
+                    enabled = maaState != MaaExecutionState.RUNNING
+                            && maaState != MaaExecutionState.STARTING,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    if (maaState == MaaExecutionState.STARTING) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("开始任务")
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                OutlinedButton(
+                    onClick = { viewModel.onStopTasks() },
+                    enabled = maaState == MaaExecutionState.RUNNING,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
                 ) {
-                    Button(
-                        onClick = { viewModel.onStartTasks() },
-                        enabled = maaState != MaaExecutionState.RUNNING
-                                && maaState != MaaExecutionState.STARTING,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        if (maaState == MaaExecutionState.STARTING) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text("开始任务")
-                        }
-                    }
-
-                    OutlinedButton(
-                        onClick = { viewModel.onStopTasks() },
-                        enabled = maaState == MaaExecutionState.RUNNING,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        )
-                    ) {
-                        Text("停止任务")
-                    }
+                    Text("停止任务")
                 }
             }
         }
@@ -325,79 +332,79 @@ private fun BackgroundConfigurationPanel(
         )
     ) {
         Column(modifier = Modifier.padding(top = 10.dp)) {
-        when (state.currentTaskType) {
-            TaskType.WAKE_UP -> WakeUpConfigPanel(
-                config = wakeUpConfig,
-                onConfigChange = {
-                    coroutineScope.launch {
-                        viewModel.taskConfig.setWakeUpConfig(it)
+            when (state.currentTaskType) {
+                TaskType.WAKE_UP -> WakeUpConfigPanel(
+                    config = wakeUpConfig,
+                    onConfigChange = {
+                        coroutineScope.launch {
+                            viewModel.taskConfig.setWakeUpConfig(it)
+                        }
                     }
-                }
-            )
+                )
 
-            TaskType.RECRUITING -> RecruitConfigPanel(
-                config = recruitConfig,
-                onConfigChange = {
-                    coroutineScope.launch {
-                        viewModel.taskConfig.setRecruitConfig(it)
+                TaskType.RECRUITING -> RecruitConfigPanel(
+                    config = recruitConfig,
+                    onConfigChange = {
+                        coroutineScope.launch {
+                            viewModel.taskConfig.setRecruitConfig(it)
+                        }
                     }
-                }
-            )
+                )
 
-            TaskType.BASE -> InfrastConfigPanel(
-                config = infrastConfig,
-                onConfigChange = {
-                    coroutineScope.launch {
-                        viewModel.taskConfig.setInfrastConfig(it)
+                TaskType.BASE -> InfrastConfigPanel(
+                    config = infrastConfig,
+                    onConfigChange = {
+                        coroutineScope.launch {
+                            viewModel.taskConfig.setInfrastConfig(it)
+                        }
                     }
-                }
-            )
+                )
 
-            TaskType.COMBAT -> FightConfigPanel(
-                config = fightConfig,
-                onConfigChange = {
-                    coroutineScope.launch {
-                        viewModel.taskConfig.setFightConfig(it)
+                TaskType.COMBAT -> FightConfigPanel(
+                    config = fightConfig,
+                    onConfigChange = {
+                        coroutineScope.launch {
+                            viewModel.taskConfig.setFightConfig(it)
+                        }
                     }
-                }
-            )
+                )
 
-            TaskType.MALL -> MallConfigPanel(
-                config = mallConfig,
-                onConfigChange = {
-                    coroutineScope.launch {
-                        viewModel.taskConfig.setMallConfig(it)
+                TaskType.MALL -> MallConfigPanel(
+                    config = mallConfig,
+                    onConfigChange = {
+                        coroutineScope.launch {
+                            viewModel.taskConfig.setMallConfig(it)
+                        }
                     }
-                }
-            )
+                )
 
-            TaskType.MISSION -> AwardConfigPanel(
-                config = awardConfig,
-                onConfigChange = {
-                    coroutineScope.launch {
-                        viewModel.taskConfig.setAwardConfig(it)
+                TaskType.MISSION -> AwardConfigPanel(
+                    config = awardConfig,
+                    onConfigChange = {
+                        coroutineScope.launch {
+                            viewModel.taskConfig.setAwardConfig(it)
+                        }
                     }
-                }
-            )
+                )
 
-            TaskType.AUTO_ROGUELIKE -> RoguelikeConfigPanel(
-                config = roguelikeConfig,
-                onConfigChange = {
-                    coroutineScope.launch {
-                        viewModel.taskConfig.setRoguelikeConfig(it)
-                    }
-                },
-            )
+                TaskType.AUTO_ROGUELIKE -> RoguelikeConfigPanel(
+                    config = roguelikeConfig,
+                    onConfigChange = {
+                        coroutineScope.launch {
+                            viewModel.taskConfig.setRoguelikeConfig(it)
+                        }
+                    },
+                )
 
-            TaskType.RECLAMATION -> ReclamationConfigPanel(
-                config = reclamationConfig,
-                onConfigChange = {
-                    coroutineScope.launch {
-                        viewModel.taskConfig.setReclamationConfig(it)
+                TaskType.RECLAMATION -> ReclamationConfigPanel(
+                    config = reclamationConfig,
+                    onConfigChange = {
+                        coroutineScope.launch {
+                            viewModel.taskConfig.setReclamationConfig(it)
+                        }
                     }
-                }
-            )
-        }
+                )
+            }
         }
     }
 }

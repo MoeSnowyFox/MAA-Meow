@@ -11,9 +11,11 @@ import com.aliothmoon.maameow.domain.service.RuntimeLogCenter
 import com.aliothmoon.maameow.domain.state.MaaExecutionState
 import com.aliothmoon.maameow.domain.usecase.BuildTaskParamsUseCase
 import com.aliothmoon.maameow.manager.PermissionManager
+import com.aliothmoon.maameow.manager.RemoteServiceManager
 import com.aliothmoon.maameow.manager.RemoteServiceManager.useRemoteService
 import com.aliothmoon.maameow.presentation.state.BackgroundTaskState
 import com.aliothmoon.maameow.presentation.state.MonitorPhase
+import com.aliothmoon.maameow.presentation.state.MonitorSurfaceSource
 import com.aliothmoon.maameow.presentation.view.panel.PanelDialogConfirmAction
 import com.aliothmoon.maameow.presentation.view.panel.PanelDialogType
 import com.aliothmoon.maameow.presentation.view.panel.PanelDialogUiState
@@ -25,6 +27,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import timber.log.Timber
@@ -42,8 +46,10 @@ class BackgroundTaskViewModel(
     val runtimeLogs: StateFlow<List<LogItem>> = runtimeLogCenter.logs
 
     private var currentSurface: Surface? = null
+    private var currentSurfaceSource: MonitorSurfaceSource? = null
     private var bindGeneration: Long = 0
     private var monitorBindJob: Job? = null
+    private val monitorBindMutex = Mutex()
     private var pageActive: Boolean = false
     private var monitorStartedByPage: Boolean = false
 
@@ -53,6 +59,7 @@ class BackgroundTaskViewModel(
 
     init {
         observeCompositionState()
+        observeRemoteServiceState()
     }
 
     private fun observeCompositionState() {
@@ -79,6 +86,19 @@ class BackgroundTaskViewModel(
                 // 状态从非 RUNNING 变为 RUNNING 时，重新绑定 Surface 到新的虚拟显示
                 if (running && !wasRunning) {
                     currentSurface?.let { bindMonitorSurface(it) }
+                }
+            }
+        }
+    }
+
+    private fun observeRemoteServiceState() {
+        viewModelScope.launch {
+            RemoteServiceManager.state.collect { serviceState ->
+                if (serviceState is RemoteServiceManager.ServiceState.Connected && pageActive) {
+                    currentSurface?.takeIf { it.isValid }?.let { surface ->
+                        Timber.i("Remote service reconnected, rebinding monitor surface")
+                        bindMonitorSurface(surface)
+                    }
                 }
             }
         }
@@ -152,16 +172,19 @@ class BackgroundTaskViewModel(
         bindGeneration += 1
         monitorBindJob?.cancel()
         currentSurface = null
+        currentSurfaceSource = null
 
         viewModelScope.launch {
-            runCatching {
-                withContext(Dispatchers.IO) {
-                    useRemoteService {
-                        it.setMonitorSurface(null)
+            monitorBindMutex.withLock {
+                runCatching {
+                    withContext(Dispatchers.IO) {
+                        useRemoteService {
+                            it.setMonitorSurface(null)
+                        }
                     }
+                }.onFailure {
+                    Timber.w(it, "Failed to clear monitor surface")
                 }
-            }.onFailure {
-                Timber.w(it, "Failed to clear monitor surface")
             }
         }
 
@@ -175,10 +198,22 @@ class BackgroundTaskViewModel(
         }
     }
 
-    fun onSurfaceChange(surface: Surface?) {
+    fun onSurfaceAvailable(source: MonitorSurfaceSource, surface: Surface) {
+        currentSurfaceSource = source
         currentSurface = surface
-        _state.update { it.copy(hasSurface = surface != null && surface.isValid) }
+        _state.update { it.copy(hasSurface = surface.isValid) }
         bindMonitorSurface(surface)
+    }
+
+    fun onSurfaceDestroyed(source: MonitorSurfaceSource) {
+        if (currentSurfaceSource != source) {
+            Timber.d("Ignore stale monitor surface destroy: source=%s, current=%s", source, currentSurfaceSource)
+            return
+        }
+        currentSurfaceSource = null
+        currentSurface = null
+        _state.update { it.copy(hasSurface = false) }
+        bindMonitorSurface(null)
     }
 
     fun retryMonitorBinding() {
@@ -202,21 +237,26 @@ class BackgroundTaskViewModel(
                 )
             }
 
-            val result = runCatching {
-                withTimeout(MONITOR_TIMEOUT_MS) {
-                    withContext(Dispatchers.IO) {
-                        useRemoteService {
-                            it.setMonitorSurface(surface)
+            monitorBindMutex.withLock {
+                if (generation != bindGeneration) {
+                    return@withLock
+                }
+
+                val result = runCatching {
+                    withTimeout(MONITOR_TIMEOUT_MS) {
+                        withContext(Dispatchers.IO) {
+                            useRemoteService {
+                                it.setMonitorSurface(surface)
+                            }
                         }
                     }
                 }
-            }
 
-            if (generation != bindGeneration) {
-                return@launch
-            }
+                if (generation != bindGeneration) {
+                    return@withLock
+                }
 
-            result.onSuccess {
+                result.onSuccess {
                 _state.update {
                     it.copy(
                         isMonitorLoading = false,
@@ -247,6 +287,7 @@ class BackgroundTaskViewModel(
                         monitorPhase = MonitorPhase.ERROR
                     )
                 }
+            }
             }
         }
     }
