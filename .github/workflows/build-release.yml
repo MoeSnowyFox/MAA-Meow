@@ -122,6 +122,26 @@ jobs:
       contents: write
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install git-cliff
+        uses: kenji-miyake/setup-git-cliff@v2
+
+      - name: Generate changelog
+        run: |
+          # 生成当前版本的 changelog（用于 Release body）
+          git-cliff --current --strip header -o RELEASE_NOTES.md
+          # 追加 Mirror酱 下载链接
+          cat >> RELEASE_NOTES.md << 'EOF'
+
+          ---
+
+          [已有 Mirror酱 CDK？前往 Mirror酱 高速下载](https://mirrorchyan.com/zh/projects?rid=MAA&os=android&source=maagh-release)
+          EOF
+
       - name: Download all APK artifacts
         uses: actions/download-artifact@v4
         with:
@@ -132,13 +152,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
           draft: false
           prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
           files: apks/*.apk
-          append_body: true
-          body: |
-
-            ---
-
-            [已有 Mirror酱 CDK？前往 Mirror酱 高速下载](https://mirrorchyan.com/zh/projects?rid=MAA&os=android&source=maagh-release)
+          body_path: RELEASE_NOTES.md

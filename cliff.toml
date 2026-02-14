@@ -1,0 +1,52 @@
+[changelog]
+header = """
+# Changelog\n
+"""
+body = """
+{%- macro remote_url() -%}
+  https://github.com/Aliothmoon/MaaMeow
+{%- endmacro -%}
+
+{% if version -%}
+## [{{ version | trim_start_matches(pat="v") }}]({{ self::remote_url() }}/releases/tag/{{ version }}) - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else -%}
+## [Unreleased]
+{% endif -%}
+
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | upper_first }}
+{% for commit in commits %}
+{%- if commit.scope -%}
+- **{{ commit.scope }}**: {{ commit.message }}
+{%- else -%}
+- {{ commit.message }}
+{%- endif %}
+{%- endfor %}
+{% endfor -%}
+"""
+trim = true
+postprocessors = [
+  { pattern = '\((\w+)\)!?:', replace = "**${1}**:" },
+]
+
+[git]
+conventional_commits = true
+filter_unconventional = false
+split_commits = false
+commit_parsers = [
+  { message = "^feat", group = "新增 | Features" },
+  { message = "^fix", group = "修复 | Bug Fixes" },
+  { message = "^perf", group = "优化 | Performance" },
+  { message = "^refactor|^rft", group = "重构 | Refactor" },
+  { message = "^docs|^doc", group = "文档 | Documentation" },
+  { message = "^style", group = "样式 | Styling" },
+  { message = "^test", group = "测试 | Testing" },
+  { message = "^chore", group = "杂项 | Miscellaneous" },
+  { message = "^ci|^build", skip = true },
+  { message = "^Merge", skip = true },
+]
+protect_breaking_commits = false
+filter_commits = false
+tag_pattern = "v[0-9].*"
+skip_tags = ".*alpha.*"
+sort_commits = "newest"
