@@ -48,17 +48,16 @@ python scripts/setup_maa_core.py
 | [`app/src/main/java/com/aliothmoon/maameow/third/`](app/src/main/java/com/aliothmoon/maameow/third/) | [Genymobile/scrcpy](https://github.com/Genymobile/scrcpy)                               | [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) |
 
 - **MaaAssistantArknights**：提供核心自动化引擎，通过 `scripts/setup_maa_core.py` 下载预编译产物
-    - **scrcpy**：`third/` 目录下的代码源自 scrcpy 服务端部分，用于在 Android shell
+- **scrcpy**：`third/` 目录下的代码源自 scrcpy 服务端部分，用于在 Android shell
       环境中设置Context并使用Hidden API
 
 ## 致谢
 
 感谢以下开源项目，本项目的实现离不开它们的贡献：
 
-- [MaaAssistantArknights](https://github.com/MaaAssistantArknights/MaaAssistantArknights) —
-  强大的明日方舟自动化引擎
-- [Genymobile/scrcpy](https://github.com/Genymobile/scrcpy) — Android 隐藏 API 访问方案
-- [Shizuku](https://github.com/RikkaApps/Shizuku) — 免 Root 权限框架
+- [MaaAssistantArknights](https://github.com/MaaAssistantArknights/MaaAssistantArknights) — 一款明日方舟游戏小助手 基于图像识别技术，一键完成全部日常任务！
+- [Genymobile/scrcpy](https://github.com/Genymobile/scrcpy) — This application mirrors Android devices (video and audio) connected via USB or TCP/IP and allows control using the computer's keyboard and mouse. It does not require root access or an app installed on the device. It works on Linux, Windows, and macOS.
+- [Shizuku](https://github.com/RikkaApps/Shizuku) — Using system APIs directly with adb/root privileges from normal apps through a Java process started with app_process.
 
 ## 许可证
 
