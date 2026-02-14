@@ -1,10 +1,11 @@
 package com.aliothmoon.maameow.domain.service.update
 
-import com.aliothmoon.maameow.data.config.MaaPathConfig
+import com.aliothmoon.maameow.constant.MaaApi
 import com.aliothmoon.maameow.data.datasource.ResourceDownloader
 import com.aliothmoon.maameow.data.datasource.ZipExtractor
 import com.aliothmoon.maameow.data.model.update.UpdateError
 import com.aliothmoon.maameow.data.model.update.UpdateProcessState
+import com.aliothmoon.maameow.data.model.update.UpdateSource
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -42,9 +43,50 @@ class ResourceUpdateHandler(
     }
 
     /**
+     * 确认并下载资源更新
+     * 根据下载源解析下载链接，MirrorChyan 需要 CDK 验证
+     */
+    suspend fun confirmAndDownload(
+        source: UpdateSource,
+        cdk: String,
+        currentVersion: String,
+        target: File
+    ): Result<Unit> {
+        val url = when (source) {
+            UpdateSource.MIRROR_CHYAN -> {
+                _state.value = UpdateProcessState.Checking("正在获取下载链接...")
+                when (val result = downloader.resolveDownloadUrl(currentVersion, cdk)) {
+                    is ResourceDownloader.VersionCheckResult.UpdateAvailable -> {
+                        if (result.info.downloadUrl.isBlank()) {
+                            _state.value = UpdateProcessState.Failed(UpdateError.CdkRequired)
+                            return Result.failure(Exception("CDK 验证失败"))
+                        }
+                        result.info.downloadUrl
+                    }
+
+                    is ResourceDownloader.VersionCheckResult.Error -> {
+                        _state.value = UpdateProcessState.Failed(
+                            UpdateError.fromCode(result.code, result.message)
+                        )
+                        return Result.failure(Exception(result.message))
+                    }
+
+                    is ResourceDownloader.VersionCheckResult.NoUpdate -> {
+                        _state.value = UpdateProcessState.NoUpdate(result.currentVersion)
+                        return Result.failure(Exception("已是最新版本"))
+                    }
+                }
+            }
+
+            UpdateSource.GITHUB -> MaaApi.GITHUB_RESOURCE
+        }
+        return downloadAndInstall(target, url)
+    }
+
+    /**
      * 下载并安装资源更新
      */
-    suspend fun downloadAndInstall(target: File, url: String): Result<Unit> {
+    private suspend fun downloadAndInstall(target: File, url: String): Result<Unit> {
 
         // 1. 下载
         _state.value = UpdateProcessState.Downloading(0, "准备下载...", 0L, 0L)

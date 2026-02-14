@@ -9,10 +9,10 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -89,6 +89,8 @@ fun UpdateCard(
 
     var showResourceUpdateDialog by remember { mutableStateOf(false) }
     var showAppUpdateDialog by remember { mutableStateOf(false) }
+    var resourceErrorMessage by remember { mutableStateOf<String?>(null) }
+    var appErrorMessage by remember { mutableStateOf<String?>(null) }
 
     // ==================== 资源更新状态处理 ====================
 
@@ -100,9 +102,7 @@ fun UpdateCard(
             }
 
             is UpdateProcessState.Failed -> {
-                Toast.makeText(context, "资源更新失败: ${state.error.message}", Toast.LENGTH_LONG)
-                    .show()
-                viewModel.reset()
+                resourceErrorMessage = "资源更新失败: ${state.error.message}"
             }
 
             is UpdateProcessState.Success -> {
@@ -128,9 +128,7 @@ fun UpdateCard(
             }
 
             is UpdateProcessState.Failed -> {
-                Toast.makeText(context, "检查更新失败: ${state.error.message}", Toast.LENGTH_LONG)
-                    .show()
-                viewModel.resetAppUpdate()
+                appErrorMessage = "${state.error.message}"
             }
 
             is UpdateProcessState.Success -> {
@@ -155,7 +153,7 @@ fun UpdateCard(
             updateInfo = updateInfo,
             onConfirm = {
                 showResourceUpdateDialog = false
-                viewModel.download()
+                viewModel.confirmResourceDownload()
             },
             onDismiss = {
                 showResourceUpdateDialog = false
@@ -172,10 +170,32 @@ fun UpdateCard(
             currentVersion = viewModel.currentAppVersion,
             onConfirm = {
                 showAppUpdateDialog = false
-                viewModel.downloadApp()
+                viewModel.confirmAppDownload()
             },
             onDismiss = {
                 showAppUpdateDialog = false
+                viewModel.resetAppUpdate()
+            }
+        )
+    }
+
+    // 资源更新错误弹窗
+    resourceErrorMessage?.let { message ->
+        ErrorDialog(
+            message = message,
+            onDismiss = {
+                resourceErrorMessage = null
+                viewModel.reset()
+            }
+        )
+    }
+
+    // 应用更新错误弹窗
+    appErrorMessage?.let { message ->
+        ErrorDialog(
+            message = message,
+            onDismiss = {
+                appErrorMessage = null
                 viewModel.resetAppUpdate()
             }
         )
@@ -320,7 +340,7 @@ fun UpdateCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "更新源",
+                        text = "下载源",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onTertiaryContainer
                     )
@@ -363,7 +383,7 @@ fun UpdateCard(
                                             }
                                             append("是独立的第三方加速下载服务，需要付费使用，并非「MAA」收费。\n\n")
                                             append("其运营成本由订阅收入支撑，部分收益将回馈项目开发者。欢迎订阅 CDK 享受高速下载，同时支持项目持续开发。\n\n")
-                                            append("未填写 CDK 时将自动通过 GitHub 下载，若失败请尝试配置网络代理。")
+                                            append("选择 Mirror酱 作为下载源时需要填写 CDK。")
                                         }
                                     )
                                 }
@@ -675,4 +695,34 @@ private fun CdkInputField(
             )
         }
     }
+}
+
+/**
+ * 错误提示弹窗
+ */
+@Composable
+private fun ErrorDialog(
+    message: String,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "更新失败",
+                style = MaterialTheme.typography.titleMedium
+            )
+        },
+        text = {
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("确定")
+            }
+        }
+    )
 }

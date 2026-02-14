@@ -23,7 +23,7 @@ sealed class UpdateError : Message {
             MirrorchyanBizError("CDK 已过期")
 
         data object KeyInvalid :
-            MirrorchyanBizError("CDK 错误")
+            MirrorchyanBizError("CDK 不正确")
 
         data object ResourceQuotaExhausted :
             MirrorchyanBizError("CDK 今日下载次数已达上限")
@@ -48,6 +48,10 @@ sealed class UpdateError : Message {
         data object InvalidChannel :
             MirrorchyanBizError("错误的更新通道参数")
 
+    }
+
+    data object CdkRequired : UpdateError() {
+        override val message: String = "请输入正确的 CDK"
     }
 
     companion object {

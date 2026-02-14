@@ -24,15 +24,10 @@ class AppUpdateHandler(
     /**
      * 检查 App 更新
      */
-    suspend fun checkUpdate(source: UpdateSource, cdk: String = "") {
+    suspend fun checkUpdate(cdk: String = "") {
         _state.value = UpdateProcessState.Checking("正在检查应用更新...")
 
-        val result = when (source) {
-            UpdateSource.MIRROR_CHYAN -> downloader.checkVersionFromMirrorChyan(cdk)
-            UpdateSource.GITHUB -> downloader.checkVersionFromGitHub()
-        }
-
-        when (result) {
+        when (val result = downloader.checkVersionFromMirrorChyan(cdk)) {
             is AppDownloader.VersionCheckResult.UpdateAvailable -> {
                 _state.value = UpdateProcessState.Available(result.info)
             }
@@ -50,9 +45,61 @@ class AppUpdateHandler(
     }
 
     /**
+     * 确认并下载 App 更新
+     * 根据下载源解析下载链接，MirrorChyan 需要 CDK 验证
+     */
+    suspend fun confirmAndDownload(source: UpdateSource, cdk: String): Result<Unit> {
+        val url = when (source) {
+            UpdateSource.MIRROR_CHYAN -> {
+                _state.value = UpdateProcessState.Checking("正在获取下载链接...")
+                when (val result = downloader.checkVersionFromMirrorChyan(cdk)) {
+                    is AppDownloader.VersionCheckResult.UpdateAvailable -> {
+                        if (result.info.downloadUrl.isBlank()) {
+                            _state.value = UpdateProcessState.Failed(UpdateError.CdkRequired)
+                            return Result.failure(Exception("CDK 验证失败"))
+                        }
+                        result.info.downloadUrl
+                    }
+
+                    is AppDownloader.VersionCheckResult.Error -> {
+                        _state.value = UpdateProcessState.Failed(
+                            UpdateError.fromCode(result.code, result.message)
+                        )
+                        return Result.failure(Exception(result.message))
+                    }
+
+                    is AppDownloader.VersionCheckResult.NoUpdate -> {
+                        _state.value = UpdateProcessState.NoUpdate(result.currentVersion)
+                        return Result.failure(Exception("已是最新版本"))
+                    }
+                }
+            }
+
+            UpdateSource.GITHUB -> {
+                _state.value = UpdateProcessState.Checking("正在获取下载链接...")
+                when (val result = downloader.checkVersionFromGitHub()) {
+                    is AppDownloader.VersionCheckResult.UpdateAvailable -> result.info.downloadUrl
+                    is AppDownloader.VersionCheckResult.Error -> {
+                        _state.value = UpdateProcessState.Failed(
+                            UpdateError.fromCode(result.code, result.message)
+                        )
+                        return Result.failure(Exception(result.message))
+                    }
+
+                    is AppDownloader.VersionCheckResult.NoUpdate -> {
+                        _state.value = UpdateProcessState.NoUpdate(result.currentVersion)
+                        return Result.failure(Exception("已是最新版本"))
+                    }
+                }
+            }
+        }
+        return downloadAndInstall(url)
+    }
+
+    /**
      * 下载并安装 APK
      */
-    suspend fun downloadAndInstall(url: String): Result<Unit> {
+    private suspend fun downloadAndInstall(url: String): Result<Unit> {
         _state.value = UpdateProcessState.Downloading(0, "准备下载...", 0L, 0L)
 
         val downloadResult = downloader.downloadToTempFile(url) { progress ->

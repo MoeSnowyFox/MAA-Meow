@@ -176,8 +176,7 @@ class AppDownloader(
             val downloadUrl = if (cdk.isNotBlank()) {
                 data.url ?: return VersionCheckResult.Error(-1, "下载链接为空")
             } else {
-                // 无 CDK 时回退到 GitHub Release
-                return checkVersionFromGitHub()
+                ""
             }
 
             VersionCheckResult.UpdateAvailable(
@@ -213,8 +212,9 @@ class AppDownloader(
             val tempFile = File(context.cacheDir, "MaaMeow-${UUID.randomUUID()}.apk")
 
             withContext(Dispatchers.IO) {
-                BufferedOutputStream(FileOutputStream(tempFile)).use { output ->
-                    val buffer = ByteArray(16 * 1024)
+                val bfz = 2 * 1024 * 1024
+                BufferedOutputStream(FileOutputStream(tempFile), bfz).use { output ->
+                    val buffer = ByteArray(bfz)
                     var downloaded = 0L
                     var lastUpdateTime = System.currentTimeMillis()
                     var lastDownloaded = 0L

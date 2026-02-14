@@ -19,12 +19,17 @@ class UpdateService(
     val resourceUpdateState: StateFlow<UpdateProcessState>
         get() = resourceHandler.state
 
-    suspend fun checkFromMirrorChyan(current: String, cdk: String = "") {
-        resourceHandler.checkUpdate(current, cdk)
+    suspend fun checkResourceUpdate(current: String) {
+        resourceHandler.checkUpdate(current)
     }
 
-    suspend fun downloadResource(dir: File, url: String): Result<Unit> {
-        return resourceHandler.downloadAndInstall(dir, url)
+    suspend fun confirmAndDownloadResource(
+        source: UpdateSource,
+        cdk: String,
+        currentVersion: String,
+        dir: File
+    ): Result<Unit> {
+        return resourceHandler.confirmAndDownload(source, cdk, currentVersion, dir)
     }
 
     fun reset() {
@@ -36,12 +41,12 @@ class UpdateService(
     val appUpdateState: StateFlow<UpdateProcessState>
         get() = appHandler.state
 
-    suspend fun checkAppUpdate(source: UpdateSource, cdk: String = "") {
-        appHandler.checkUpdate(source, cdk)
+    suspend fun checkAppUpdate() {
+        appHandler.checkUpdate()
     }
 
-    suspend fun downloadAndInstallApp(url: String): Result<Unit> {
-        return appHandler.downloadAndInstall(url)
+    suspend fun confirmAndDownloadApp(source: UpdateSource, cdk: String): Result<Unit> {
+        return appHandler.confirmAndDownload(source, cdk)
     }
 
     fun resetAppUpdate() {

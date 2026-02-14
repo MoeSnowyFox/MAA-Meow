@@ -2,8 +2,8 @@ package com.aliothmoon.maameow.data.datasource
 
 import android.annotation.SuppressLint
 import android.content.Context
-import com.aliothmoon.maameow.data.api.HttpClientHelper
 import com.aliothmoon.maameow.constant.MaaApi
+import com.aliothmoon.maameow.data.api.HttpClientHelper
 import com.aliothmoon.maameow.data.api.await
 import com.aliothmoon.maameow.data.api.model.MirrorChyanResponse
 import com.aliothmoon.maameow.data.model.update.UpdateInfo
@@ -90,6 +90,13 @@ class ResourceDownloader(
         }
     }
 
+    /**
+     * 通过 MirrorChyan API 获取下载链接
+     */
+    suspend fun resolveDownloadUrl(currentVersion: String, cdk: String): VersionCheckResult {
+        return checkVersion(currentVersion, cdk)
+    }
+
     private fun parseVersionResponse(
         body: MirrorChyanResponse,
         current: String,
@@ -109,7 +116,7 @@ class ResourceDownloader(
         val downloadUrl = if (useMirrorChyan) {
             data.url ?: return VersionCheckResult.Error(-1, "下载链接为空")
         } else {
-            MaaApi.GITHUB_RESOURCE
+            ""
         }
 
         return VersionCheckResult.UpdateAvailable(

@@ -88,43 +88,36 @@ class UpdateViewModel(
         }
         viewModelScope.launch {
             val currentVersion = loadResourceVersion()
-            Timber.d("当前资源版本: $currentVersion, 更新源: ${updateSource.value}")
-
-            val cdk = when (updateSource.value) {
-                UpdateSource.MIRROR_CHYAN -> {
-                    mirrorChyanCdk.value
-                }
-
-                else -> ""
-            }
-            Timber.i("check update with cdk $cdk")
-            updateService.checkFromMirrorChyan(currentVersion, cdk)
+            Timber.d("当前资源版本: $currentVersion, 下载源: ${updateSource.value}")
+            updateService.checkResourceUpdate(currentVersion)
         }
     }
 
 
-    fun download() {
-        val resourcesDir = pathConfig.resourceDir
+    fun confirmResourceDownload() {
         val state = resourceUpdateState.value
-        if (state is UpdateProcessState.Available) {
-            Timber.i("download url ${state.info}")
-            viewModelScope.launch {
-                val file = File(resourcesDir)
-                if (!file.exists()) {
-                    file.mkdirs()
-                }
+        if (state !is UpdateProcessState.Available) return
 
-                val result = updateService.downloadResource(
-                    file, state.info.downloadUrl
-                )
-                if (result.isSuccess) {
-                    refreshResourceVersion()
-                    maaResourceLoader.reset()
-                    maaResourceLoader.load()
-                }
+        viewModelScope.launch {
+            val resourcesDir = pathConfig.resourceDir
+            val file = File(resourcesDir)
+            if (!file.exists()) {
+                file.mkdirs()
+            }
+
+            val currentVersion = loadResourceVersion()
+            val result = updateService.confirmAndDownloadResource(
+                source = updateSource.value,
+                cdk = mirrorChyanCdk.value,
+                currentVersion = currentVersion,
+                dir = file
+            )
+            if (result.isSuccess) {
+                refreshResourceVersion()
+                maaResourceLoader.reset()
+                maaResourceLoader.load()
             }
         }
-
     }
 
 
@@ -144,23 +137,20 @@ class UpdateViewModel(
             return
         }
         viewModelScope.launch {
-            val source = updateSource.value
-            val cdk = when (source) {
-                UpdateSource.MIRROR_CHYAN -> mirrorChyanCdk.value
-                else -> ""
-            }
-            Timber.i("检查 App 更新, 更新源: $source")
-            updateService.checkAppUpdate(source, cdk)
+            Timber.i("检查 App 更新 (MirrorChyan)")
+            updateService.checkAppUpdate()
         }
     }
 
-    fun downloadApp() {
+    fun confirmAppDownload() {
         val state = appUpdateState.value
-        if (state is UpdateProcessState.Available) {
-            Timber.i("下载 App: ${state.info}")
-            viewModelScope.launch {
-                updateService.downloadAndInstallApp(state.info.downloadUrl)
-            }
+        if (state !is UpdateProcessState.Available) return
+
+        viewModelScope.launch {
+            updateService.confirmAndDownloadApp(
+                source = updateSource.value,
+                cdk = mirrorChyanCdk.value
+            )
         }
     }
 
