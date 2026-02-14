@@ -27,13 +27,14 @@ window = "1.5.1"
 
 # Third-party libraries
 jna = "5.17.0"
-fastjson2 = "2.0.60"
+fastjson2 = "2.0.61"
 shizuku = "13.1.5"
 floatingX = "2.3.7"
 timber = "5.0.1"
 okhttp = "5.3.2"
 
 # GitHub libraries
+composeMarkdown = "0.5.8"
 deviceCompat = "2.3"
 xxPermissions = "28.0"
 reorderable = "3.0.0"
@@ -85,6 +86,7 @@ shizuku-provider = { group = "dev.rikka.shizuku", name = "provider", version.ref
 floatingx = { group = "io.github.petterpx", name = "floatingx", version.ref = "floatingX" }
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+compose-markdown = { group = "com.github.jeziellago", name = "compose-markdown", version.ref = "composeMarkdown" }
 reorderable = { group = "sh.calvin.reorderable", name = "reorderable", version.ref = "reorderable" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 

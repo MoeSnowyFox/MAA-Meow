@@ -163,6 +163,7 @@ dependencies {
     implementation(libs.timber)
     implementation(libs.okhttp)
     implementation(libs.reorderable)
+    implementation(libs.compose.markdown)
 
     // Kotlin Serialization
     implementation(libs.kotlinx.serialization.json)

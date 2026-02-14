@@ -67,6 +67,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import dev.jeziellago.compose.markdowntext.MarkdownText
 import com.aliothmoon.maameow.data.model.update.UpdateInfo
 import com.aliothmoon.maameow.data.model.update.UpdateProcessState
 import com.aliothmoon.maameow.data.model.update.UpdateSource
@@ -598,15 +599,20 @@ private fun AppUpdateConfirmDialog(
             )
         },
         text = {
-            Text(
-                text = buildString {
-                    append("$currentVersion → ${updateInfo.version}")
-                    if (!updateInfo.releaseNote.isNullOrBlank()) {
-                        append("\n\n${updateInfo.releaseNote}")
-                    }
-                },
-                style = MaterialTheme.typography.bodyMedium
-            )
+            Column {
+                Text(
+                    text = "$currentVersion → ${updateInfo.version}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                if (!updateInfo.releaseNote.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    MarkdownText(
+                        markdown = updateInfo.releaseNote,
+                        modifier = Modifier.fillMaxWidth(),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
         },
         confirmButton = {
             Button(
